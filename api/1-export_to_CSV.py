@@ -1,47 +1,33 @@
 #!/usr/bin/python3
 """
-Exports all tasks for a given employee ID to a CSV file.
-Format: "USER_ID","USERNAME","TASK_COMPLETED_STATUS","TASK_TITLE"
+Using a REST API and an EMP_ID, save info about their TODO list in a csv file
 """
-
-import csv
 import requests
 import sys
 
+
 if __name__ == "__main__":
-    employee_id = int(sys.argv[1])
-    url = "https://jsonplaceholder.typicode.com"
+    """ main section """
+    EMP_ID = sys.argv[1]
+    BASE_URL = 'https://jsonplaceholder.typicode.com'
+    employee = requests.get(
+        BASE_URL + f'/users/{EMP_ID}/').json()
+    EMPLOYEE_NAME = employee.get("username")
+    employee_todos = requests.get(
+        BASE_URL + f'/users/{EMP_ID}/todos').json()
+    serialized_todos = {}
 
-    # Get user information
-    user_response = requests.get("{}/users/{}".format(url, employee_id))
-    user_data = user_response.json()
-    employee_name = user_data.get("name")
-    username = user_data.get("username")
+    for todo in employee_todos:
+        serialized_todos.update({todo.get("title"): todo.get("completed")})
 
-    # Get TODO list for the employee
-    todos_response = requests.get("{}/todos?userId={}".format(
-        url, employee_id))
-    todos = todos_response.json()
-
-    # Count completed tasks
-    done_tasks = [task for task in todos if task.get("completed")]
-    total_tasks = len(todos)
-    number_of_done_tasks = len(done_tasks)
-
-    # Print results to console
-    print("Employee {} is done with tasks({}/{}):".format(
-        employee_name, number_of_done_tasks, total_tasks))
-    for task in done_tasks:
-        print("\t {}".format(task.get("title")))
-
-    # Export to CSV
-    filename = "{}.csv".format(employee_id)
-    with open(filename, mode="w", newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
-        for task in todos:
-            writer.writerow([
-                employee_id,
-                username,
-                str(task.get("completed")),
-                task.get("title")
-            ])
+    COMPLETED_LEN = len([k for k, v in serialized_todos.items() if v is True])
+    with open(str(EMP_ID) + '.csv', "w") as f:
+        [
+            f.write(
+                '"' + str(sys.argv[1]) + '",' +
+                '"' + EMPLOYEE_NAME + '",' +
+                '"' + str(todo["completed"]) + '",' +
+                '"' + todo["title"] + '",' + "\n"
+            )
+            for todo in employee_todos
+        ]

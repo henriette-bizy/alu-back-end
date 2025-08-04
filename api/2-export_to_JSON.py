@@ -1,37 +1,35 @@
 #!/usr/bin/python3
 """
-This script retrieves TODO list progress for a given employee ID
-from the JSONPlaceholder API and exports the data to a JSON file.
+Using a REST API and an EMP_ID, save info about their TODO list in a json file
 """
-
 import json
 import requests
 import sys
 
 if __name__ == "__main__":
-    employee_id = int(sys.argv[1])
-    url = "https://jsonplaceholder.typicode.com/"
+    """ Main section """
+    BASE_URL = 'https://jsonplaceholder.typicode.com'
+    employee_id = sys.argv[1] if len(sys.argv) > 1 else None
 
-    # Get user information
-    user_response = requests.get(f"{url}/users/{employee_id}")
-    user_data = user_response.json()
-    username = user_data.get("username")
+    if not employee_id:
+        print("Please provide an employee ID as an argument.")
+        sys.exit(1)
 
-    # Get TODO list for the employee
-    todos_response = requests.get(f"{url}/todos?userId={employee_id}")
-    todos = todos_response.json()
+    employee = requests.get(f"{BASE_URL}/users/{employee_id}/").json()
+    employee_name = employee.get("username")
+    emp_todos = requests.get(f"{BASE_URL}/users/{employee_id}/todos").json()
+    serialized_todos = []
 
-    # Format the data
-    tasks = []
-    for task in todos:
-        tasks.append({
-            "task": task.get("title"),
-            "completed": task.get("completed"),
-            "username": username
+    for todo in emp_todos:
+        serialized_todos.append({
+            "task": todo.get("title"),
+            "completed": todo.get("completed"),
+            "username": employee_name
         })
 
-    result = {employee_id: tasks}
+    output_data = {employee_id: serialized_todos}
 
-    # Export to JSON file
-    with open(f"{employee_id}.json", "w", encoding='utf-8') as jsonfile:
-        json.dump(result, jsonfile)
+    with open(f"{employee_id}.json", 'w') as file:
+        json.dump(output_data, file, indent=4)
+
+    print(f"Tasks for employee {employee_id} exported to {file_name}.")

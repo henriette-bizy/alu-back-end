@@ -1,52 +1,47 @@
 #!/usr/bin/python3
 """
-This script retrieves TODO tasks for all employees
-from the JSONPlaceholder API and exports the data to a JSON file.
-
-Format:
-{
-  "USER_ID": [
-    {
-      "username": "USERNAME",
-      "task": "TASK_TITLE",
-      "completed": TASK_COMPLETED_STATUS
-    },
-    ...
-  ],
-  ...
-}
+Retrieves employee tasks from an API and exports data in JSON format.
 """
-
 import json
 import requests
 
-if __name__ == "__main__":
-    url = "https://jsonplaceholder.typicode.com"
 
-    # Get all users
-    users_response = requests.get(f"{url}/users")
-    users = users_response.json()
+def get_employee_tasks(employee_id):
+    """
+    Fetches tasks for a specific employee from the API.
+    """
+    base_url = "https://jsonplaceholder.typicode.com"
+    user_info = requests.get(f"{base_url}/users/{employee_id}").json()
+    employee_username = user_info["username"]
 
-    all_tasks = {}
+    todos_url = f"{base_url}/users/{employee_id}/todos"
+    todos_info = requests.get(todos_url).json()
 
-    for user in users:
-        user_id = str(user.get("id"))
-        username = user.get("username")
+    return [
+        {
+            "username": employee_username,
+            "task": task["title"],
+            "completed": task["completed"],
+        }
+        for task in todos_info
+    ]
 
-        # Get the user's todos
-        todos_response = requests.get(f"{url}/todos?userId={user_id}")
-        todos = todos_response.json()
 
-        task_list = []
-        for task in todos:
-            task_list.append({
-                "username": username,
-                "task": task.get("title"),
-                "completed": task.get("completed")
-            })
+def get_all_employee_ids():
+    """
+    Fetches all employee IDs available in the API.
+    """
+    base_url = "https://jsonplaceholder.typicode.com/users"
+    users_info = requests.get(base_url).json()
+    ids = [user["id"] for user in users_info]
+    return ids
 
-        all_tasks[user_id] = task_list
 
-    # Write to file
-    with open("todo_all_employees.json", "w", encoding='utf-8') as jsonfile:
-        json.dump(all_tasks, jsonfile)
+if __name__ == '__main__':
+    all_employee_ids = get_all_employee_ids()
+
+    with open('todo_all_employees.json', "w") as json_file:
+        all_employees_tasks = {}
+        for emp_id in all_employee_ids:
+            all_employees_tasks[str(emp_id)] = get_employee_tasks(emp_id)
+        json_file.write(json.dumps(all_employees_tasks, indent=4))
